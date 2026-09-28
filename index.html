@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock-up Gallery Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        dark: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            border: '#334155',
+                            muted: '#64748b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f17;
+            color: #f1f5f9;
+        }
+        /* Glassmorphism effects */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f17;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3.5">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center space-x-3">
+                    <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                        <i class="ph-bold ph-cube text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-2">
+                            MockVault
+                            <span class="text-xs bg-brand-500/20 text-brand-400 border border-brand-500/30 font-medium px-2 py-0.5 rounded-full">Pro</span>
+                        </h1>
+                        <p class="text-xs text-slate-400">Server Asset Directory</p>
+                    </div>
+                </div>
+
+                <!-- Mobile Action Toggle Buttons -->
+                <div class="flex md:hidden items-center space-x-2">
+                    <button onclick="toggleSettingsModal()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700">
+                        <i class="ph-bold ph-gear text-lg"></i>
+                    </button>
+                    <button onclick="toggleDeployModal()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700">
+                        <i class="ph-bold ph-cloud-arrow-up text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Global Search Bar -->
+            <div class="relative w-full md:max-w-md">
+                <i class="ph-bold ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                <input 
+                    type="text" 
+                    id="searchInput"
+                    oninput="handleSearch(this.value)"
+                    placeholder="Search mock-ups by name, foundry, tag, or format..." 
+                    class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-10 pr-10 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
+                >
+                <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                    <i class="ph-bold ph-x-circle text-base"></i>
+                </button>
+            </div>
+
+            <!-- Server Status & Action Bar -->
+            <div class="hidden md:flex items-center space-x-3">
+                <!-- Server Connection Badge -->
+                <button onclick="toggleSettingsModal()" class="flex items-center space-x-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 px-3 py-1.5 rounded-xl transition-all group">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-xs font-medium text-slate-300 group-hover:text-white transition-colors" id="serverBadgeText">
+                        SMB Connected
+                    </span>
+                    <i class="ph-bold ph-gear text-slate-400 group-hover:text-white text-sm"></i>
+                </button>
+
+                <!-- Vercel Deployment Instructions Button -->
+                <button onclick="toggleDeployModal()" class="flex items-center space-x-1.5 bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs px-3.5 py-2 rounded-xl transition-all shadow-md shadow-brand-600/20">
+                    <i class="ph-bold ph-cloud-arrow-up text-base"></i>
+                    <span>Deploy Guide</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <div class="max-w-7xl mx-auto px-4 lg:px-8 py-6 flex-1 flex flex-col md:flex-row gap-8 w-full">
+
+        <!-- Sidebar Navigation Filters -->
+        <aside class="w-full md:w-64 flex-shrink-0 space-y-6">
+            
+            <!-- Quick Info Callout -->
+            <div class="p-4 rounded-2xl bg-indigo-950/40 border border-brand-500/20 text-xs space-y-2">
+                <div class="flex items-center space-x-2 text-brand-400 font-semibold">
+                    <i class="ph-bold ph-info text-base"></i>
+                    <span>SMB Launch Ready</span>
+                </div>
+                <p class="text-slate-400 leading-relaxed">
+                    Clicking <span class="text-slate-200 font-medium">Open SMB</span> launches macOS Finder or Windows Explorer straight to the mockup directory on your internal server.
+                </p>
+            </div>
+
+            <!-- Categories Filter -->
+            <div>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1 mb-2.5 flex justify-between items-center">
+                    <span>Category</span>
+                    <button onclick="resetCategoryFilter()" class="text-[10px] text-brand-400 hover:underline lowercase font-normal">reset</button>
+                </h3>
+                <div class="space-y-1" id="categoryList">
+                    <!-- Dynamic Categories Generated Here -->
+                </div>
+            </div>
+
+            <!-- Foundry / Provider Filter -->
+            <div>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1 mb-2.5 flex justify-between items-center">
+                    <span>Foundry / Source</span>
+                    <button onclick="resetFoundryFilter()" class="text-[10px] text-brand-400 hover:underline lowercase font-normal">reset</button>
+                </h3>
+                <div class="space-y-1" id="foundryList">
+                    <!-- Dynamic Foundries Generated Here -->
+                </div>
+            </div>
+
+            <!-- File Format Filter -->
+            <div>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1 mb-2.5">File Format</h3>
+                <div class="flex flex-wrap gap-1.5" id="formatList">
+                    <!-- Dynamic Formats Generated Here -->
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Main Gallery Container -->
+        <main class="flex-1 space-y-6 min-w-0">
+            
+            <!-- Filter Bar & Metadata Header -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+                <div>
+                    <h2 class="text-xl font-bold text-white tracking-tight" id="galleryHeading">All Mock-ups</h2>
+                    <p class="text-xs text-slate-400 mt-0.5" id="itemCountLabel">Showing 0 items</p>
+                </div>
+
+                <!-- Active Filters & View Controls -->
+                <div class="flex items-center space-x-3 self-end sm:self-auto">
+                    <!-- Sort Selector -->
+                    <select id="sortBySelect" onchange="handleSortChange(this.value)" class="bg-slate-800 border border-slate-700 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-500">
+                        <option value="newest">Sort by: Newest First</option>
+                        <option value="name">Sort by: Name (A-Z)</option>
+                        <option value="foundry">Sort by: Foundry</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Mock-up Cards Grid -->
+            <div id="mockupGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Cards dynamically populated via Javascript -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden flex-col items-center justify-center py-16 text-center space-y-3">
+                <div class="h-16 w-16 rounded-full bg-slate-800/80 flex items-center justify-center text-slate-500 text-2xl">
+                    <i class="ph-bold ph-magnifying-glass-slash"></i>
+                </div>
+                <h3 class="text-base font-semibold text-slate-300">No mock-ups found</h3>
+                <p class="text-xs text-slate-500 max-w-sm">Try adjusting your search terms or clearing selected category and foundry filters.</p>
+                <button onclick="resetAllFilters()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-xl transition-all border border-slate-700">
+                    Reset All Filters
+                </button>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg rounded-2xl border border-slate-700/80 shadow-2xl p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div class="flex items-center space-x-2.5">
+                    <i class="ph-bold ph-hard-drives text-brand-400 text-xl"></i>
+                    <h3 class="font-bold text-lg text-white">Server Connection Settings</h3>
+                </div>
+                <button onclick="toggleSettingsModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">
+                        Server SMB Protocol Address (Mac / Cross-Platform)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="smbServerInput" 
+                        placeholder="smb://192.168.1.100/DesignShare" 
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 font-mono focus:outline-none focus:border-brand-500"
+                    >
+                    <p class="text-[11px] text-slate-500 mt-1">This forms the prefix for your 1-click SMB folder launcher links.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">
+                        Windows Network Path Equivalent (UNC Path)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="uncServerInput" 
+                        placeholder="\\192.168.1.100\DesignShare" 
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 font-mono focus:outline-none focus:border-brand-500"
+                    >
+                    <p class="text-[11px] text-slate-500 mt-1">Used for 1-click clipboard path copying for Windows OS users.</p>
+                </div>
+
+                <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300/90 space-y-1">
+                    <div class="font-semibold flex items-center space-x-1.5">
+                        <i class="ph-bold ph-warning"></i>
+                        <span>Browser Security Note</span>
+                    </div>
+                    <p class="text-[11px] text-amber-200/70 leading-relaxed">
+                        When clicking <code class="bg-amber-950/60 px-1 py-0.5 rounded text-amber-300">smb://</code> links in Safari, macOS opens Finder directly. Chrome and Edge will display a prompt asking *"Open Finder?"* on first click.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+                <button onclick="toggleSettingsModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 rounded-xl">
+                    Cancel
+                </button>
+                <button onclick="saveServerSettings()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white rounded-xl shadow-md shadow-brand-600/20">
+                    Save Server Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mock-up Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-3xl rounded-2xl border border-slate-700/80 shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
+            
+            <!-- Left Preview Image -->
+            <div class="md:w-1/2 bg-slate-950 relative flex items-center justify-center p-4 min-h-[240px] md:min-h-full">
+                <img id="modalImage" src="" alt="Mockup Preview" class="max-h-full max-w-full object-contain rounded-lg">
+                <span id="modalFormatBadge" class="absolute top-3 left-3 bg-slate-900/90 border border-slate-700 text-brand-400 font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded-md">
+                    PSD
+                </span>
+            </div>
+
+            <!-- Right Detail Info -->
+            <div class="md:w-1/2 p-6 flex flex-col justify-between space-y-5 overflow-y-auto">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <span id="modalCategory" class="text-xs text-brand-400 font-semibold tracking-wide uppercase">Apparel</span>
+                            <h3 id="modalTitle" class="text-xl font-bold text-white leading-snug">Heavyweight Oversized T-Shirt</h3>
+                        </div>
+                        <button onclick="closeDetailModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                            <i class="ph-bold ph-x text-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- Metadata Grid -->
+                    <div class="grid grid-cols-2 gap-3 p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs">
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-medium">Foundry</span>
+                            <span id="modalFoundry" class="text-slate-200 font-medium">Yellow Images</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-medium">Resolution</span>
+                            <span id="modalDimensions" class="text-slate-200 font-medium">6000 x 4000 px</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-medium">File Size</span>
+                            <span id="modalFileSize" class="text-slate-200 font-medium">450 MB</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-medium">Features</span>
+                            <span id="modalFeatures" class="text-slate-200 font-medium">Smart Objects</span>
+                        </div>
+                    </div>
+
+                    <!-- Server Relative Path Box -->
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-medium text-slate-400">Server Directory Relative Path</label>
+                        <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 break-all select-all flex items-center justify-between">
+                            <span id="modalPathText" class="truncate pr-2">/Apparel/T-Shirts/Heavyweight_Oversized_01</span>
+                            <i class="ph-bold ph-folder text-slate-500"></i>
+                        </div>
+                    </div>
+
+                    <!-- Tags -->
+                    <div id="modalTags" class="flex flex-wrap gap-1.5">
+                        <!-- Dynamic Tags -->
+                    </div>
+                </div>
+
+                <!-- Call to Action Buttons -->
+                <div class="space-y-2 pt-3 border-t border-slate-800">
+                    <a 
+                        id="modalSmbLink" 
+                        href="#" 
+                        target="_blank"
+                        class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs py-3 px-4 rounded-xl flex items-center justify-center space-x-2 transition-all shadow-lg shadow-brand-600/25"
+                    >
+                        <i class="ph-bold ph-folder-open text-base"></i>
+                        <span>Open Directly in Finder / Explorer</span>
+                    </a>
+
+                    <button 
+                        id="modalCopyPathBtn" 
+                        onclick="copyModalPath()" 
+                        class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs py-2.5 px-4 rounded-xl flex items-center justify-center space-x-2 transition-all border border-slate-700"
+                    >
+                        <i class="ph-bold ph-copy text-base"></i>
+                        <span>Copy Full Network Path</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Deployment & Setup Guide Modal -->
+    <div id="deployModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-2xl rounded-2xl border border-slate-700/80 shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div class="flex items-center space-x-2.5">
+                    <i class="ph-bold ph-rocket-launch text-brand-400 text-xl"></i>
+                    <h3 class="font-bold text-lg text-white">How to Host on Vercel / GitHub Pages</h3>
+                </div>
+                <button onclick="toggleDeployModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs text-slate-300 leading-relaxed">
+                
+                <div class="p-3.5 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                    <h4 class="font-semibold text-white flex items-center gap-2">
+                        <span class="bg-brand-500 text-white rounded-full w-4 h-4 inline-flex items-center justify-center text-[10px]">1</span>
+                        Push Code to GitHub
+                    </h4>
+                    <p class="text-slate-400">
+                        Create a repository on GitHub (e.g., <code class="text-brand-300">mockup-portal</code>) and commit this single <code class="text-brand-300">index.html</code> file.
+                    </p>
+                </div>
+
+                <div class="p-3.5 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                    <h4 class="font-semibold text-white flex items-center gap-2">
+                        <span class="bg-brand-500 text-white rounded-full w-4 h-4 inline-flex items-center justify-center text-[10px]">2</span>
+                        Deploy via Vercel (Recommended)
+                    </h4>
+                    <ol class="list-disc list-inside text-slate-400 space-y-1 pl-1">
+                        <li>Go to <a href="https://vercel.com" target="_blank" class="text-brand-400 underline">Vercel.com</a> and sign in with GitHub.</li>
+                        <li>Click <strong>"Add New Project"</strong> and select your repository.</li>
+                        <li>Leave all build settings as default (Static HTML) and click <strong>Deploy</strong>.</li>
+                        <li>Your team now has a fast, live URL to view mockups anywhere!</li>
+                    </ol>
+                </div>
+
+                <div class="p-3.5 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                    <h4 class="font-semibold text-white flex items-center gap-2">
+                        <span class="bg-brand-500 text-white rounded-full w-4 h-4 inline-flex items-center justify-center text-[10px]">3</span>
+                        How <code class="text-brand-300">&lt;a href="smb://..."&gt;</code> Links Function
+                    </h4>
+                    <p class="text-slate-400">
+                        Because this web app runs over HTTPS, browsers interpret <code class="text-brand-300">smb://</code> links as external operating system protocol handlers. When clicked, macOS launches Finder automatically to mount/open the path.
+                    </p>
+                    <div class="p-2.5 bg-slate-950 rounded-lg font-mono text-[11px] text-slate-300 overflow-x-auto border border-slate-800">
+                        &lt;a href="smb://192.168.1.100/Mockups/Apparel/TShirt"&gt;Open in Finder&lt;/a&gt;
+                    </div>
+                </div>
+
+                <div class="p-3.5 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                    <h4 class="font-semibold text-white flex items-center gap-2">
+                        <span class="bg-brand-500 text-white rounded-full w-4 h-4 inline-flex items-center justify-center text-[10px]">4</span>
+                        Browser Recommendations
+                    </h4>
+                    <ul class="list-disc list-inside text-slate-400 space-y-1 pl-1">
+                        <li><strong class="text-slate-200">Safari (Mac):</strong> Opens SMB links seamlessly with 1 click.</li>
+                        <li><strong class="text-slate-200">Chrome / Edge:</strong> Asks for a one-time permission popup ("Allow site to open Finder?").</li>
+                        <li><strong class="text-slate-200">Windows Explorer:</strong> Use the "Copy Path" button for seamless pasting into Windows File Explorer address bar.</li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-800">
+                <button onclick="toggleDeployModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white rounded-xl">
+                    Got It
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 glass-panel border border-brand-500/40 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transition-all transform translate-y-20 opacity-0 pointer-events-none">
+        <i class="ph-bold ph-check-circle text-emerald-400 text-xl"></i>
+        <span id="toastMessage" class="text-xs font-medium">Path copied to clipboard!</span>
+    </div>
+
+    <script>
+        // Default Mockup Data
+        const initialMockups = [
+            {
+                id: 'm1',
+                title: 'Heavyweight Oversized T-Shirt',
+                category: 'Apparel',
+                foundry: 'Yellow Images',
+                format: 'PSD',
+                dimensions: '6000 x 4000 px',
+                fileSize: '480 MB',
+                relativePath: '/Apparel/T-Shirts/Heavyweight_Oversized_01',
+                image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+                tags: ['Apparel', 'Streetwear', 'Cotton', 'Displacement Map'],
+                features: '3D Smart Objects'
+            },
+            {
+                id: 'm2',
+                title: 'Matte Minimalist Can 330ml',
+                category: 'Packaging',
+                foundry: 'Craftwork',
+                format: 'PSD',
+                dimensions: '4500 x 3000 px',
+                fileSize: '210 MB',
+                relativePath: '/Packaging/Beverage/Can_330ml_Matte',
+                image: 'https://images.unsplash.com/photo-1584441405886-bc91be61e56a?auto=format&fit=crop&w=800&q=80',
+                tags: ['Beverage', 'Soda', 'Can', 'Matte'],
+                features: 'Isolated Shadows'
+            },
+            {
+                id: 'm3',
+                title: 'MacBook Pro 16 Studio Scene',
+                category: 'Digital Devices',
+                foundry: 'LS Graphics',
+                format: 'FIG',
+                dimensions: '5120 x 2880 px',
+                fileSize: '120 MB',
+                relativePath: '/Digital/Apple/MacBook_Pro_16_Studio',
+                image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80',
+                tags: ['Apple', 'Laptop', 'UI Design', 'Figma'],
+                features: 'Vector Auto-layout'
+            },
+            {
+                id: 'm4',
+                title: 'A4 Brand Stationery Set',
+                category: 'Stationery',
+                foundry: 'Artify',
+                format: 'PSD',
+                dimensions: '5000 x 3500 px',
+                fileSize: '650 MB',
+                relativePath: '/Stationery/Branding_Sets/A4_Corporate_Mockup',
+                image: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=800&q=80',
+                tags: ['Letterhead', 'Business Card', 'Envelope', 'Branding'],
+                features: 'Multiple Angles'
+            },
+            {
+                id: 'm5',
+                title: 'Urban Street Billboard Poster',
+                category: 'Outdoor',
+                foundry: 'Mr.Mockup',
+                format: 'PSD',
+                dimensions: '4000 x 2800 px',
+                fileSize: '340 MB',
+                relativePath: '/Outdoor/Billboards/Urban_Street_Poster_03',
+                image: 'https://images.unsplash.com/photo-1572948803043-be598823fb94?auto=format&fit=crop&w=800&q=80',
+                tags: ['Poster', 'Billboard', 'Street', 'Realistic'],
+                features: 'Photo Effects Filter'
+            },
+            {
+                id: 'm6',
+                title: 'Minimal Hardcover Book Spine',
+                category: 'Print',
+                foundry: 'Mockup World',
+                format: 'PSD',
+                dimensions: '3800 x 2600 px',
+                fileSize: '180 MB',
+                relativePath: '/Print/Books/Hardcover_Book_Spine',
+                image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+                tags: ['Book', 'Publishing', 'Hardcover', 'Spine'],
+                features: 'Foil Stamping Effect'
+            },
+            {
+                id: 'm7',
+                title: 'iPhone 15 Pro Clay Edition',
+                category: 'Digital Devices',
+                foundry: 'LS Graphics',
+                format: 'FIG',
+                dimensions: '4000 x 3000 px',
+                fileSize: '85 MB',
+                relativePath: '/Digital/Apple/iPhone_15_Pro_Clay',
+                image: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=800&q=80',
+                tags: ['iPhone', 'Mobile', 'Clay', 'App Showcase'],
+                features: 'Color Customizable'
+            },
+            {
+                id: 'm8',
+                title: 'Cosmetic Serum Glass Dropper',
+                category: 'Packaging',
+                foundry: 'Yellow Images',
+                format: 'PSD',
+                dimensions: '5500 x 4000 px',
+                fileSize: '510 MB',
+                relativePath: '/Packaging/Cosmetics/Serum_Glass_Dropper',
+                image: 'https://images.unsplash.com/photo-1608248597260-261c47a505b0?auto=format&fit=crop&w=800&q=80',
+                tags: ['Cosmetics', 'Glass', 'Dropper', 'Beauty'],
+                features: '3D Render Layers'
+            }
+        ];
+
+        // App State
+        let mockups = [...initialMockups];
+        let activeCategory = 'All';
+        let activeFoundry = 'All';
+        let activeFormat = 'All';
+        let searchQuery = '';
+        let sortBy = 'newest';
+        let selectedMockup = null;
+
+        // Server Configuration State (Loaded from LocalStorage or defaults)
+        let serverConfig = {
+            smbBase: localStorage.getItem('smbBase') || 'smb://192.168.1.100/DesignShare',
+            uncBase: localStorage.getItem('uncBase') || '\\\\192.168.1.100\\DesignShare'
+        };
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('smbServerInput').value = serverConfig.smbBase;
+            document.getElementById('uncServerInput').value = serverConfig.uncBase;
+            
+            renderSidebarFilters();
+            renderGallery();
+        });
+
+        function renderSidebarFilters() {
+            // Render Categories
+            const categories = ['All', ...new Set(mockups.map(m => m.category))];
+            const categoryList = document.getElementById('categoryList');
+            categoryList.innerHTML = categories.map(cat => `
+                <button 
+                    onclick="setCategory('${cat}')"
+                    class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-between ${activeCategory === cat ? 'bg-brand-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}"
+                >
+                    <span>${cat}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-full ${activeCategory === cat ? 'bg-brand-700 text-white' : 'bg-slate-800 text-slate-500'}">
+                        ${cat === 'All' ? mockups.length : mockups.filter(m => m.category === cat).length}
+                    </span>
+                </button>
+            `).join('');
+
+            // Render Foundries
+            const foundries = ['All', ...new Set(mockups.map(m => m.foundry))];
+            const foundryList = document.getElementById('foundryList');
+            foundryList.innerHTML = foundries.map(foundry => `
+                <button 
+                    onclick="setFoundry('${foundry}')"
+                    class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-between ${activeFoundry === foundry ? 'bg-brand-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}"
+                >
+                    <span>${foundry}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-full ${activeFoundry === foundry ? 'bg-brand-700 text-white' : 'bg-slate-800 text-slate-500'}">
+                        ${foundry === 'All' ? mockups.length : mockups.filter(m => m.foundry === foundry).length}
+                    </span>
+                </button>
+            `).join('');
+
+            // Render Formats
+            const formats = ['All', ...new Set(mockups.map(m => m.format))];
+            const formatList = document.getElementById('formatList');
+            formatList.innerHTML = formats.map(fmt => `
+                <button 
+                    onclick="setFormat('${fmt}')"
+                    class="px-2.5 py-1 rounded-lg text-xs font-mono transition-all ${activeFormat === fmt ? 'bg-brand-600 text-white font-bold' : 'bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/60'}"
+                >
+                    ${fmt}
+                </button>
+            `).join('');
+        }
+
+        function getFilteredMockups() {
+            return mockups.filter(m => {
+                const matchesCategory = activeCategory === 'All' || m.category === activeCategory;
+                const matchesFoundry = activeFoundry === 'All' || m.foundry === activeFoundry;
+                const matchesFormat = activeFormat === 'All' || m.format === activeFormat;
+                
+                const q = searchQuery.toLowerCase();
+                const matchesSearch = !q || 
+                    m.title.toLowerCase().includes(q) ||
+                    m.foundry.toLowerCase().includes(q) ||
+                    m.category.toLowerCase().includes(q) ||
+                    m.format.toLowerCase().includes(q) ||
+                    m.tags.some(t => t.toLowerCase().includes(q));
+
+                return matchesCategory && matchesFoundry && matchesFormat && matchesSearch;
+            }).sort((a, b) => {
+                if (sortBy === 'name') return a.title.localeCompare(b.title);
+                if (sortBy === 'foundry') return a.foundry.localeCompare(b.foundry);
+                return 0; // Default order
+            });
+        }
+
+        function renderGallery() {
+            const filtered = getFilteredMockups();
+            const grid = document.getElementById('mockupGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            document.getElementById('itemCountLabel').innerText = `Showing ${filtered.length} of ${mockups.length} items`;
+            document.getElementById('galleryHeading').innerText = activeCategory === 'All' ? 'All Mock-ups' : `${activeCategory} Mock-ups`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            emptyState.classList.remove('flex');
+
+            grid.innerHTML = filtered.map(m => {
+                const fullSmbUrl = `${cleanPath(serverConfig.smbBase)}${m.relativePath}`;
+                
+                return `
+                <div class="glass-card rounded-2xl overflow-hidden flex flex-col group">
+                    
+                    <!-- Card Image Header -->
+                    <div class="relative h-48 bg-slate-950 overflow-hidden cursor-pointer" onclick="openDetailModal('${m.id}')">
+                        <img 
+                            src="${m.image}" 
+                            alt="${m.title}"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                            onerror="this.src='https://placehold.co/600x400/1e293b/64748b?text=Mockup+Preview'"
+                        >
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-60"></div>
+                        
+                        <!-- Badges -->
+                        <span class="absolute top-3 left-3 bg-slate-900/90 border border-slate-700/80 text-brand-400 font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded-md shadow-md">
+                            ${m.format}
+                        </span>
+
+                        <span class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-sm border border-slate-700/60 text-slate-300 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                            ${m.foundry}
+                        </span>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+                        <div>
+                            <div class="text-[10px] font-semibold text-brand-400 uppercase tracking-wider mb-1">${m.category}</div>
+                            <h3 
+                                onclick="openDetailModal('${m.id}')"
+                                class="font-bold text-sm text-slate-100 group-hover:text-brand-300 transition-colors cursor-pointer line-clamp-1"
+                            >
+                                ${m.title}
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1 font-mono text-[11px] truncate">
+                                ${m.relativePath}
+                            </p>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="pt-2 border-t border-slate-800/80 flex items-center gap-2">
+                            
+                            <!-- Direct SMB Link Button -->
+                            <a 
+                                href="${fullSmbUrl}" 
+                                target="_blank"
+                                title="Click to open directly in macOS Finder or File Explorer"
+                                class="flex-1 bg-brand-600/90 hover:bg-brand-500 text-white font-medium text-xs py-2 px-3 rounded-xl flex items-center justify-center space-x-1.5 transition-all shadow-sm"
+                            >
+                                <i class="ph-bold ph-folder-open text-sm"></i>
+                                <span>Open SMB</span>
+                            </a>
+
+                            <!-- Quick Copy Path Button -->
+                            <button 
+                                onclick="copyPathToClipboard('${m.relativePath}')"
+                                title="Copy relative server path to clipboard"
+                                class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white p-2 rounded-xl transition-all border border-slate-700/80"
+                            >
+                                <i class="ph-bold ph-copy text-sm"></i>
+                            </button>
+
+                            <!-- Details Modal Button -->
+                            <button 
+                                onclick="openDetailModal('${m.id}')"
+                                title="View Mockup Specifications"
+                                class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white p-2 rounded-xl transition-all border border-slate-700/80"
+                            >
+                                <i class="ph-bold ph-[info] text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+                `;
+            }).join('');
+        }
+
+        function setCategory(category) {
+            activeCategory = category;
+            renderSidebarFilters();
+            renderGallery();
+        }
+
+        function setFoundry(foundry) {
+            activeFoundry = foundry;
+            renderSidebarFilters();
+            renderGallery();
+        }
+
+        function setFormat(format) {
+            activeFormat = format;
+            renderSidebarFilters();
+            renderGallery();
+        }
+
+        function handleSearch(val) {
+            searchQuery = val;
+            const clearBtn = document.getElementById('clearSearchBtn');
+            if (val) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            renderGallery();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            searchQuery = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderGallery();
+        }
+
+        function handleSortChange(val) {
+            sortBy = val;
+            renderGallery();
+        }
+
+        function resetCategoryFilter() {
+            activeCategory = 'All';
+            renderSidebarFilters();
+            renderGallery();
+        }
+
+        function resetFoundryFilter() {
+            activeFoundry = 'All';
+            renderSidebarFilters();
+            renderGallery();
+        }
+
+        function resetAllFilters() {
+            activeCategory = 'All';
+            activeFoundry = 'All';
+            activeFormat = 'All';
+            searchQuery = '';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderSidebarFilters();
+            renderGallery();
+        }
+
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function saveServerSettings() {
+            const smb = document.getElementById('smbServerInput').value.trim();
+            const unc = document.getElementById('uncServerInput').value.trim();
+
+            serverConfig.smbBase = smb || 'smb://192.168.1.100/DesignShare';
+            serverConfig.uncBase = unc || '\\\\192.168.1.100\\DesignShare';
+
+            localStorage.setItem('smbBase', serverConfig.smbBase);
+            localStorage.setItem('uncBase', serverConfig.uncBase);
+
+            toggleSettingsModal();
+            renderGallery();
+            showToast('Server settings updated successfully!');
+        }
+
+        function openDetailModal(id) {
+            selectedMockup = mockups.find(m => m.id === id);
+            if (!selectedMockup) return;
+
+            document.getElementById('modalTitle').innerText = selectedMockup.title;
+            document.getElementById('modalCategory').innerText = selectedMockup.category;
+            document.getElementById('modalFoundry').innerText = selectedMockup.foundry;
+            document.getElementById('modalFormatBadge').innerText = selectedMockup.format;
+            document.getElementById('modalDimensions').innerText = selectedMockup.dimensions;
+            document.getElementById('modalFileSize').innerText = selectedMockup.fileSize;
+            document.getElementById('modalFeatures').innerText = selectedMockup.features;
+            document.getElementById('modalPathText').innerText = selectedMockup.relativePath;
+            document.getElementById('modalImage').src = selectedMockup.image;
+
+            const fullSmbUrl = `${cleanPath(serverConfig.smbBase)}${selectedMockup.relativePath}`;
+            document.getElementById('modalSmbLink').setAttribute('href', fullSmbUrl);
+
+            // Render Tags
+            const tagsContainer = document.getElementById('modalTags');
+            tagsContainer.innerHTML = selectedMockup.tags.map(t => `
+                <span class="bg-slate-800 border border-slate-700/60 text-slate-300 text-[10px] px-2 py-0.5 rounded-md">
+                    #${t}
+                </span>
+            `).join('');
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        function toggleDeployModal() {
+            document.getElementById('deployModal').classList.toggle('hidden');
+        }
+
+        function copyPathToClipboard(relativePath) {
+            const isWindows = navigator.userAgent.toLowerCase().includes('win');
+            let fullPath = '';
+
+            if (isWindows) {
+                fullPath = `${cleanWindowsPath(serverConfig.uncBase)}${relativePath.replace(/\//g, '\\')}`;
+            } else {
+                fullPath = `${cleanPath(serverConfig.smbBase)}${relativePath}`;
+            }
+
+            copyToClipboard(fullPath);
+            showToast('Server path copied to clipboard!');
+        }
+
+        function copyModalPath() {
+            if (selectedMockup) {
+                copyPathToClipboard(selectedMockup.relativePath);
+            }
+        }
+
+        function copyToClipboard(text) {
+            // Using execCommand for legacy iframe browser context compatibility
+            const dummy = document.createElement('textarea');
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = msg;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        function cleanPath(str) {
+            return str.replace(/\/+$/, '');
+        }
+
+        function cleanWindowsPath(str) {
+            return str.replace(/\\+$/, '');
+        }
+    </script>
+</body>
+</html>
